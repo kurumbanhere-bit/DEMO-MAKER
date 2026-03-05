@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Demo Maker PRO - KL ESPORTS</title>
+    
+    <link rel="preconnect" href="https://cdnjs.cloudflare.com">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+    
+    <style>
+        :root { --p-orange: #ff4d00; --bg: #0f172a; --card-bg: #1e293b; --p-green: #22c55e; }
+        body { font-family: 'Segoe UI', system-ui, sans-serif; background: var(--bg); color: white; padding: 15px; margin: 0; -webkit-font-smoothing: antialiased; }
+        
+        .header { font-size: 22px; font-weight: 900; color: var(--p-orange); text-align: center; margin-bottom: 20px; letter-spacing: 1px; }
+        
+        .filter-container { background: var(--card-bg); padding: 12px; border-radius: 12px; margin-bottom: 15px; display: flex; align-items: center; justify-content: center; gap: 10px; border: 1px solid #334155; }
+        .filter-container label { font-size: 13px; font-weight: bold; color: #94a3b8; }
+        .date-picker { padding: 8px; border-radius: 8px; background: #0f172a; color: white; border: 1px solid var(--p-orange); outline: none; font-weight: bold; }
+
+        .match-card {
+            background: var(--card-bg); border-radius: 14px; padding: 15px; margin-bottom: 12px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1); border: 1px solid #334155;
+            animation: slideIn 0.3s ease-out;
+        }
+        @keyframes slideIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+        .m-title { font-weight: 800; font-size: 16px; margin-bottom: 4px; color: #f8fafc; }
+        .m-time-info { font-size: 11px; color: var(--p-orange); margin-bottom: 12px; font-weight: bold; display: flex; align-items: center; gap: 5px; }
+        
+        .m-stats { font-size: 13px; color: #94a3b8; display: flex; justify-content: space-between; margin-bottom: 15px; }
+        
+        .controls { display: flex; gap: 8px; }
+        input[type="number"] { 
+            flex: 1; padding: 12px; border: 1px solid #334155; border-radius: 10px; 
+            background: #0f172a; color: white; font-weight: bold; text-align: center; font-size: 15px; outline: none;
+        }
+        .btn-add { 
+            background: var(--p-green); color: white; border: none; 
+            padding: 0 20px; border-radius: 10px; font-weight: bold; cursor: pointer; transition: 0.2s;
+        }
+        .btn-add:active { transform: scale(0.95); }
+        .btn-add:disabled { opacity: 0.5; cursor: not-allowed; }
+    </style>
+
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+</head>
+<body>
+
+<div class="header"><i class="fa-solid fa-robot"></i> DEMO MAKER PRO</div>
+
+<div class="filter-container">
+    <label><i class="fa fa-calendar-day"></i> Date:</label>
+    <input type="date" id="demoDateFilter" class="date-picker" onchange="loadMatches()">
+</div>
+
+<div id="demoMatchList">
+    <p style="text-align: center; color: #64748b;">Optimizing load speed...</p>
+</div>
+
+<script>
+    const firebaseConfig = {
+        apiKey: "AIzaSyBrHcONT6y0he3fzrtRGqdQMZfIMpGxcNo",
+        authDomain: "kl-esports.firebaseapp.com",
+        databaseURL: "https://kl-esports-default-rtdb.firebaseio.com",
+        projectId: "kl-esports",
+        storageBucket: "kl-esports.appspot.com",
+        messagingSenderId: "440301376580",
+        appId: "1:440301376580:web:fb0b8ae0df3fe096bd1811"
+    };
+    
+    if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
+    const db = firebase.database();
+
+    document.getElementById('demoDateFilter').valueAsDate = new Date();
+
+    const names = ["JACK", "YUVARAJ", "TV", "TWISST", "KIRAN", "RAHUL", "VIJAY", "ARJUN", "SREE", "GHOST", "ZOD", "SNIPER", "KING", "BOY", "EAGLE", "HUNTER", "VIGNESH", "HARI", "AKSHAY", "DRACO", "BLADE", "WARRIOR", "NITHIN", "JITHIN", "ABHI", "SURYA", "RAVAN", "ZACK", "LEO", "REX", "TYSON", "LUKE", "KABIR", "SAURAV", "AJITH"];
+    const tags = ["PRZ", "RST", "JIS", "TWI", "MAX", "SKY", "ACE", "PRO", "REX", "ZOD", "KLM", "TNT", "SP", "TK", "LM", "X7", "OP", "DX", "GG", "MR", "YT", "Z1"];
+
+    function generateUltraRealBot() {
+        const style = Math.random(); 
+        const randomName = names[Math.floor(Math.random() * names.length)];
+        let finalIGN = style < 0.4 
+            ? tags[Math.floor(Math.random() * tags.length)] + " " + randomName 
+            : randomName + (Math.random() > 0.5 ? " " + Math.floor(10 + Math.random() * 99) : " OP");
+
+        return { ign: finalIGN, photo: 'https://cdn-icons-png.flaticon.com/512/149/149071.png' };
+    }
+
+    function loadMatches() {
+        const filterDate = document.getElementById('demoDateFilter').value;
+        const listDiv = document.getElementById('demoMatchList');
+        
+        // Background listener for real-time updates
+        db.ref('matches').on('value', snap => {
+            let html = "";
+            let matchCount = 0;
+
+            if(!snap.exists()) { listDiv.innerHTML = "<p style='text-align:center'>No active matches.</p>"; return; }
+
+            snap.forEach(child => {
+                const m = child.val();
+                if(m.status === "Completed") return;
+
+                if(m.time && m.time.startsWith(filterDate)) {
+                    matchCount++;
+                    const mDate = new Date(m.time);
+                    const timeStr = mDate.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+
+                    html += `
+                        <div class="match-card">
+                            <div class="m-title">${m.category} | ${m.map || 'ERANGEL'}</div>
+                            <div class="m-time-info"><i class="fa-regular fa-clock"></i> ${timeStr}</div>
+                            <div class="m-stats">
+                                <span>Joined: <b>${m.joined || 0} / ${m.max || 48}</b></span>
+                                <span>Fee: ₹${m.entry}</span>
+                            </div>
+                            <div class="controls">
+                                <input type="number" id="qty-${child.key}" placeholder="How many bots?" inputmode="numeric">
+                                <button class="btn-add" id="btn-${child.key}" onclick="addBots('${child.key}', ${m.joined || 0}, ${m.max || 48})">ADD</button>
+                            </div>
+                        </div>
+                    `;
+                }
+            });
+
+            listDiv.innerHTML = matchCount > 0 ? html : "<p style='text-align:center; color:#64748b;'>No matches for this date.</p>";
+        });
+    }
+
+    async function addBots(matchId, currentJoined, maxSlots) {
+        const input = document.getElementById('qty-' + matchId);
+        const btn = document.getElementById('btn-' + matchId);
+        const qty = parseInt(input.value);
+
+        if(!qty || qty <= 0) return;
+        if(currentJoined + qty > maxSlots) return alert("Limit Exceeded!");
+
+        btn.innerText = "WAIT";
+        btn.disabled = true;
+
+        const updates = {};
+        const participantsRef = db.ref('matches/' + matchId + '/participants');
+
+        // BATCH UPDATE (Much faster than pushing one by one)
+        for (let i = 0; i < qty; i++) {
+            const bot = generateUltraRealBot();
+            const newParticipantKey = participantsRef.push().key;
+            updates['/matches/' + matchId + '/participants/' + newParticipantKey] = {
+                playerName: bot.ign,
+                profilePic: bot.photo,
+                status: "Confirmed",
+                type: "Demo_Bot",
+                uid: "BOT_" + Math.random().toString(36).substr(2, 8).toUpperCase()
+            };
+        }
+        
+        updates['/matches/' + matchId + '/joined'] = currentJoined + qty;
+
+        try {
+            await db.ref().update(updates);
+            input.value = "";
+        } catch (e) {
+            alert("Error adding bots!");
+        } finally {
+            btn.innerText = "ADD";
+            btn.disabled = false;
+        }
+    }
+
+    loadMatches();
+</script>
+</body>
+</html>
